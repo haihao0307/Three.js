@@ -1542,7 +1542,7 @@ function createArcLayer(kind: "sea" | "air"): ArcLayer {
     uniforms: {
       uTime: { value: 0 },
       uDensity: { value: 0.72 },
-      uThickness: { value: kind === "air" ? 0.0042 : 0.0023 },
+      uThickness: { value: kind === "air" ? 0.00084 : 0.0023 },
       uTail: { value: kind === "air" ? 0.24 : 0.28 },
       uTimelineStep: { value: 0 },
       uEventTimelineStep: { value: 0 },
