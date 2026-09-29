@@ -1,91 +1,14 @@
-name: KAOPU Score Instrument R01
-
+name: Archived KAOPU bootstrap - not a release
 on:
-  push:
-    branches:
-      - work/kaopu-score-instrument-r01-20260929
-    paths:
-      - 'kaopu-score-instrument-r01/**'
-      - '.github/workflows/kaopu-score-instrument-r01.yml'
   workflow_dispatch:
-
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: kaopu-score-instrument-r01-pages
-  cancel-in-progress: false
-
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  migrated:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    outputs:
-      page_url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
-      - name: Check out branch
-        uses: actions/checkout@v4
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload clean R01 site
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: kaopu-score-instrument-r01
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
-
-  public-browser-smoke:
-    needs: deploy
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      TARGET_URL: ${{ needs.deploy.outputs.page_url }}
-
-    steps:
-      - name: Check out branch
-        uses: actions/checkout@v4
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install Playwright
+      - name: Stop obsolete deployment path
         run: |
-          npm install --no-save playwright@1.55.0
-          npx playwright install --with-deps chromium
-
-      - name: Wait for deployed public workbench
-        shell: bash
-        run: |
-          for attempt in {1..24}; do
-            if curl --fail --location --silent --show-error "$TARGET_URL" > /tmp/kaopu-index.html; then
-              grep -q "KAOPU · Score Instrument R01" /tmp/kaopu-index.html && exit 0
-            fi
-            echo "Public workbench not ready yet (attempt $attempt/24)."
-            sleep 10
-          done
-          echo "Public workbench did not become available: $TARGET_URL"
+          echo 'This bootstrap is archived, not a release or a browser QA success.'
+          echo 'Continue in haihao0307/guilin-dem-pipeline @ work/kaopu-score-instrument-r01-20260929.'
           exit 1
-
-      - name: Run desktop and mobile public-browser QA
-        run: node kaopu-score-instrument-r01/tests/smoke.mjs
-
-      - name: Upload internal QA evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: kaopu-score-instrument-r01-qa-${{ github.sha }}
-          path: qa-artifacts/
-          if-no-files-found: ignore
-          retention-days: 14
