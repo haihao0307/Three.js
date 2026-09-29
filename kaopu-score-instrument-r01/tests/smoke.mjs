@@ -11,7 +11,7 @@ function assert(condition, message) {
 }
 
 async function verifyViewport(browser, name, viewport) {
-  const page = await browser.newPage({ viewportSize: viewport, deviceScaleFactor: 1 });
+  const page = await browser.newPage({ viewport, deviceScaleFactor: 1 });
   const consoleErrors = [];
   const pageErrors = [];
   const failedRequests = [];
