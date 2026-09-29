@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="KAOPU Score Instrument R01 — 用极简谱子实时复述三维对象。" />
+  <title>KAOPU · Score Instrument R01</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0d10;
+      --panel: rgba(18, 22, 27, 0.94);
+      --panel-soft: rgba(25, 30, 37, 0.82);
+      --line: rgba(255, 255, 255, 0.11);
+      --line-strong: rgba(255, 255, 255, 0.22);
+      --text: #f1f4f7;
+      --muted: #9ca6b2;
+      --accent: #e5b85c;
+      --accent-ink: #17120a;
+      --danger: #ff8b8b;
+      --ok: #8dd0a9;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button, textarea { font: inherit; }
+
+    #app {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: minmax(300px, 360px) 1fr;
+      grid-template-rows: 1fr;
+    }
+
+    .panel {
+      position: relative;
+      z-index: 3;
+      min-width: 0;
+      height: 100%;
+      overflow: auto;
+      padding: 22px 20px 28px;
+      background: var(--panel);
+      border-right: 1px solid var(--line);
+      backdrop-filter: blur(18px);
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .badge {
+      padding: 4px 8px;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(24px, 3vw, 34px);
+      line-height: 1.05;
+      letter-spacing: -0.035em;
+      font-weight: 680;
+    }
+
+    .lead {
+      margin: 12px 0 22px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .section-label {
+      margin: 20px 0 9px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .preset,
+    .secondary,
+    .primary {
+      min-height: 38px;
+      border-radius: 9px;
+      border: 1px solid var(--line);
+      cursor: pointer;
+      transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+    }
+
+    .preset,
+    .secondary {
+      background: var(--panel-soft);
+      color: var(--text);
+    }
+
+    .preset:hover,
+    .secondary:hover {
+      border-color: var(--line-strong);
+      background: rgba(45, 52, 62, 0.9);
+    }
+
+    .preset:active,
+    .secondary:active,
+    .primary:active { transform: translateY(1px); }
+
+    .preset[aria-pressed="true"] {
+      border-color: rgba(229, 184, 92, 0.72);
+      color: var(--accent);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 112px;
+      resize: vertical;
+      padding: 12px 13px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      outline: none;
+      background: #090b0e;
+      color: #f7e7be;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      word-break: break-all;
+    }
+
+    textarea:focus {
+      border-color: rgba(229, 184, 92, 0.72);
+      box-shadow: 0 0 0 3px rgba(229, 184, 92, 0.09);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      margin-top: 9px;
+    }
+
+    .primary {
+      border-color: transparent;
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-weight: 700;
+    }
+
+    .primary:hover { filter: brightness(1.06); }
+    .secondary { padding-inline: 14px; }
+
+    .status {
+      min-height: 22px;
+      margin: 9px 0 0;
+      color: var(--ok);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .status.error { color: var(--danger); }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(10, 12, 15, 0.55);
+    }
+
+    .metric span {
+      display: block;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 11px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 3px;
+      overflow: hidden;
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 620;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    details {
+      margin-top: 18px;
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    summary {
+      cursor: pointer;
+      color: var(--text);
+      user-select: none;
+    }
+
+    code {
+      color: #f4d895;
+      font-family: "SFMono-Regular", Consolas, monospace;
+    }
+
+    .world {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 32%, #252b34 0%, #101318 48%, #080a0d 100%);
+    }
+
+    #viewport {
+      position: absolute;
+      inset: 0;
+      touch-action: none;
+    }
+
+    #viewport canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .world-note {
+      position: absolute;
+      z-index: 2;
+      right: 16px;
+      bottom: 14px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: rgba(8, 10, 13, 0.66);
+      color: var(--muted);
+      font-size: 11px;
+      pointer-events: none;
+      backdrop-filter: blur(10px);
+    }
+
+    .world-note strong { color: var(--text); font-weight: 600; }
+
+    @media (max-width: 760px) {
+      html, body { overflow: auto; }
+
+      #app {
+        min-height: 100%;
+        height: auto;
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(54vh, 62vh) auto;
+      }
+
+      .world { grid-row: 1; }
+
+      .panel {
+        grid-row: 2;
+        height: auto;
+        overflow: visible;
+        border-top: 1px solid var(--line);
+        border-right: 0;
+        padding: 18px 16px calc(24px + env(safe-area-inset-bottom));
+      }
+
+      .preset-grid { grid-template-columns: repeat(3, 1fr); }
+      textarea { min-height: 92px; }
+      .world-note { right: 10px; bottom: 10px; }
+    }
+
+    @media (max-width: 390px) {
+      .preset-grid { grid-template-columns: repeat(2, 1fr); }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <main id="app">
+    <aside class="panel" aria-label="谱子控制台">
+      <div class="eyebrow">
+        <span>KAOPU / SCORE → WORLD</span>
+        <span class="badge">R01 · K1</span>
+      </div>
+      <h1>三维乐器</h1>
+      <p class="lead">谱子只保存规则与参数。乐器读取谱子，在统一米制、Y 轴向上的世界中实时复述对象，不读取任何模型或贴图。</p>
+
+      <div class="section-label">简单谱例</div>
+      <div class="preset-grid" id="presets">
+        <button class="preset" type="button" data-score="K1|b#d69a5a">方体</button>
+        <button class="preset" type="button" data-score="K1|s.62#5b9bd5">球体</button>
+        <button class="preset" type="button" data-score="K1|c.45,1.25#6ea870">圆柱</button>
+        <button class="preset" type="button" data-score="K1|n.55,1.2#b98a62">圆锥</button>
+        <button class="preset" type="button" data-score="K1|t.68,.19#c87883">圆环</button>
+        <button class="preset" type="button" data-score="K1|b.55,.55,.55#d69a5a@-.9,0,0;s.42#5b9bd5;c.35,1#6ea870@.9,0,0;t.48,.13#c87883@0,0,-.9/90,0,0">合奏</button>
+        <button class="preset" type="button" data-score="K1|A12,1.2{c.10,.65#e7b34e@0,.15,0/25,0,0};s.32#f4e2b8">环阵</button>
+        <button class="preset" type="button" data-score="K1|L9,.28{s.11#82b6d9};b2.8,.08,.5#596472@0,-.18,0">线阵</button>
+        <button class="preset" type="button" data-score="K1|A8,1.1{A5,.26{s.07#e7b34e}};c.12,.65#6ea870@0,-.3,0">嵌套</button>
+      </div>
+
+      <div class="section-label">当前谱子</div>
+      <textarea id="score" spellcheck="false" aria-label="K1 谱子">K1|A12,1.2{c.10,.65#e7b34e@0,.15,0/25,0,0};s.32#f4e2b8</textarea>
+      <div class="actions">
+        <button class="primary" id="play" type="button">演奏谱子</button>
+        <button class="secondary" id="camera" type="button">归位镜头</button>
+      </div>
+      <p class="status" id="status" role="status">等待演奏。</p>
+
+      <div class="section-label">信息展开</div>
+      <div class="metrics" aria-live="polite">
+        <div class="metric"><span>谱子体量</span><strong id="bytes">0 B</strong></div>
+        <div class="metric"><span>对象数量</span><strong id="objects">0</strong></div>
+        <div class="metric"><span>顶点数量</span><strong id="vertices">0</strong></div>
+        <div class="metric"><span>三角面数量</span><strong id="triangles">0</strong></div>
+        <div class="metric"><span>三角面 / 字节</span><strong id="ratio">0×</strong></div>
+        <div class="metric"><span>确定性指纹</span><strong id="hash">—</strong></div>
+      </div>
+
+      <details>
+        <summary>K1 语法速查</summary>
+        <p><code>b宽,高,深</code> 方体　<code>s半径</code> 球体　<code>c半径,高</code> 圆柱　<code>n半径,高</code> 圆锥　<code>t主半径,管半径</code> 圆环。</p>
+        <p><code>#颜色</code>　<code>!粗糙,金属</code>　<code>@位置</code>　<code>/旋转角度</code>　<code>%缩放</code>。</p>
+        <p><code>A数量,半径{子谱}</code> 环形阵列；<code>L数量,间距{子谱}</code> 线性阵列；多个节点以分号连接。</p>
+      </details>
+    </aside>
+
+    <section class="world" aria-label="实时三维世界">
+      <div id="viewport"></div>
+      <div class="world-note"><strong>拖动</strong> 旋转　<strong>滚轮/双指</strong> 缩放　单位：m</div>
+    </section>
+  </main>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
