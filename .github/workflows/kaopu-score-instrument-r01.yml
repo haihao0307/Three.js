@@ -1,4 +1,4 @@
-name: KAOPU Score Instrument R01 QA
+name: KAOPU Score Instrument R01
 
 on:
   push:
@@ -11,13 +11,45 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: kaopu-score-instrument-r01-pages
+  cancel-in-progress: false
 
 jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload clean R01 site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: kaopu-score-instrument-r01
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+
   public-browser-smoke:
+    needs: deploy
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      TARGET_URL: https://cdn.jsdelivr.net/gh/${{ github.repository }}@${{ github.sha }}/kaopu-score-instrument-r01/index.html
+      TARGET_URL: ${{ needs.deploy.outputs.page_url }}
 
     steps:
       - name: Check out branch
@@ -33,17 +65,17 @@ jobs:
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Wait for immutable public preview
+      - name: Wait for deployed public workbench
         shell: bash
         run: |
-          for attempt in {1..18}; do
+          for attempt in {1..24}; do
             if curl --fail --location --silent --show-error "$TARGET_URL" > /tmp/kaopu-index.html; then
               grep -q "KAOPU · Score Instrument R01" /tmp/kaopu-index.html && exit 0
             fi
-            echo "Public preview not ready yet (attempt $attempt/18)."
+            echo "Public workbench not ready yet (attempt $attempt/24)."
             sleep 10
           done
-          echo "Public preview did not become available: $TARGET_URL"
+          echo "Public workbench did not become available: $TARGET_URL"
           exit 1
 
       - name: Run desktop and mobile public-browser QA
